@@ -1,0 +1,2 @@
+text="marvin"
+print(text)
