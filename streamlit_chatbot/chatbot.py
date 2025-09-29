@@ -1,8 +1,3 @@
-##Write the following in the terminal
-
-pip install streamlit
-pip install pandas
-
 ##Include the following at the top before writing any code
 
 import streamlit as st
