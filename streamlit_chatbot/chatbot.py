@@ -102,7 +102,7 @@ def get_gemini_response(prompt):
     return response.text
 
 def main():
-    st.title("Gemini AI Chatbot")
+    st.title("Here we go...Bzztbzzztbzzzzt…📻")
     
     initialize_session_state()
 
@@ -112,7 +112,7 @@ def main():
             st.write(message["content"])
 
     # Chat input
-    if prompt := st.chat_input("Chat with Gemini"):
+    if prompt := st.chat_input("Where are we heading to?"):
         # Display user message
         with st.chat_message("user"):
             st.write(prompt)
