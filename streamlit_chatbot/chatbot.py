@@ -1,95 +1,109 @@
-##Include the following at the top before writing any code
-
 import streamlit as st
 import pandas as pd
+import google.generativeai as genai
+import os
+
+# --- PAGE CONFIGURATION ---
+# Set the page configuration as the very first Streamlit command.
+st.set_page_config(
+    page_title="Let's Solo Travel!",
+    page_icon="✈️",
+    layout="wide"
+)
+
+# --- API CONFIGURATION ---
+# Configure the Gemini API using Streamlit's secrets management
+try:
+    # Recommended: Use st.secrets for secure API key storage
+    GOOGLE_API_KEY = st.secrets["AIzaSyBcdzk9G7nJdiMa4twA-UdZI5f3kifzLKM"]
+    genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except (KeyError, FileNotFoundError):
+    st.error("🚨 Google API Key not found. Please add it to your Streamlit secrets.")
+    st.stop()
 
 
-def initialize_session_state():
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
+# --- MAIN APP LOGIC ---
 def main():
     st.title("Let's Solo Travel!!! ✈🌎🌞🚢")
-    
-    initialize_session_state()
+    st.write("Your adventure awaits! Select your preferences in the sidebar to generate a personalized travel plan.")
 
+    # --- SIDEBAR FOR USER INPUTS ---
+    with st.sidebar:
+        st.title("✨ Your Dream Destination")
 
+        # Input for the tour guide's persona
+        tour_guide_persona = st.radio(
+            "💁 Your tour guide will be...",
+            ["Friendly", "Formal", "Funny"],
+            index=0,
+            help="Select the tone of your travel plan."
+        )
 
-with st.sidebar:
-    st.title("Sidebar: Your Dream Destination") 
+        # Input for the destination country
+        # A shorter, more manageable list for the example. You can replace this with your full list.
+        countries = ["Japan", "Italy", "New Zealand", "Peru", "Thailand", "Egypt", "Canada", "Spain", "Australia", "Malaysia", "Vietnam", "United Kingdom", "United States", "France", "Germany"]
+        selected_country = st.selectbox(
+            "🗺️ THE country is...",
+            countries,
+            index=0
+        )
+
+        # Input for the required information
+        needed_info = st.multiselect(
+            "📋 I need information on...",
+            ["Transportations", "Stays", "Luggage Checklist", "Local Delights", "Attractions", "Safety Tips", "Cultural Etiquette"],
+            default=["Transportations", "Stays", "Attractions"],
+            help="Choose the topics you want in your travel plan."
+        )
+
+        # Input for travel duration
+        travel_duration = st.select_slider(
+            "📆 Travel Duration (Days)",
+            options=["1-4", "5-14", "15-30", "30+"],
+            value="5-14"
+        )
+
+        # Input for budget
+        budget = st.slider(
+            "💰 Budget (MYR)",
+            min_value=1000,
+            max_value=50000,
+            value=10000,
+            step=500
+        )
+
+    # --- GENERATE AND DISPLAY THE TRAVEL PLAN ---
+
+    # Only proceed if the user has selected at least one topic of interest
+    if needed_info:
+        st.subheader(f"🚀 Your Personalized Solo Travel Plan for {selected_country}")
+
+        # Construct a detailed prompt for the AI model
+        # Using an f-string to insert user selections directly into the prompt
+        prompt = f"""
+        Create a solo travel plan based on the following details:
+
+        1.  **Destination:** {selected_country}
+        2.  **Travel Duration:** {travel_duration} days.
+        3.  **Budget:** Approximately {budget} MYR.
+        4.  **Required Information:** Please provide details on the following topics: {', '.join(needed_info)}.
+        5.  **Tone of Voice:** The response should be in a {tour_guide_persona} and encouraging tone, as if you are a personal tour guide.
+
+        Please structure the output clearly with headings for each topic requested. Use markdown for formatting, including bolding key items and using bullet points for lists.
+        """
+
+        # Show a spinner while waiting for the response
+        with st.spinner(f"Crafting your {tour_guide_persona} plan for {selected_country}... Please wait. ✨"):
+            try:
+                response = model.generate_content(prompt)
+                st.markdown(response.text)
+            except Exception as e:
+                st.error(f"An error occurred while generating the plan: {e}")
+
+    else:
+        st.info("Please select at least one topic you need information on from the sidebar to generate a plan.")
+
 
 if __name__ == "__main__":
     main()
-
-st.radio("💁Your tour guide will be...", ["Friendly", "Formal", "Funny"], index=0)
-st.selectbox("🗺THE country is...", ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo, Democratic Republic of the", "Congo, Republic of the", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia (Czech Republic)", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Holy See (Vatican City)", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Korea, North", "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar (Burma)", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "São Tomé and Príncipe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"], index=0)
-st.multiselect("✊I need...", ["Transportations", " Stays", "Luggage Checklist", "Local Delights", "Attractions"], default=["Transportations"])
-st.select_slider("📆Travels Duration (Days)", options=["1-4", "5-14", "15-30", "30-365"], value="5-14")
-st.slider("💰Budget (MYR)", min_value=0, max_value=50000, value=10000)
-
-
-import streamlit as st
-import google.generativeai as genai
-
-# Configure Gemini API
-GOOGLE_API_KEY = "AIzaSyBcdzk9G7nJdiMa4twA-UdZI5f3kifzLKM"
-genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash')
-
-def initialize_session_state():
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-def get_gemini_response(prompt):
-    response = model.generate_content(prompt)
-    return response.text
-
-def main():
-    st.title("Here we go....Bzztbzzztbzzzzt…📻")
-    
-    initialize_session_state()
-
-    persona_instructions = """
-You are a friendly, encouraging study buddy.
-Use a cheerful tone, emojis are allowed.
-Always offer helpful tips for learning.
-"""
-
-
-    # Display chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
-
-    # Chat input
-    if prompt := st.chat_input("Where are we heading to?"):
-        # Display user message
-        with st.chat_message("user"):
-            st.write(prompt)
-        
-        # Add user message to history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        
-        # Get Gemini response
-        response = get_gemini_response(prompt)
-        
-        # Display assistant response
-        with st.chat_message("assistant"):
-            st.write(response)
-        
-        # Add assistant response to history
-        st.session_state.messages.append({"role": "assistant", "content": response})
-
-
-##Find the "get_gemini_response" function in your code and replace it with this function below
-
-def get_gemini_response(prompt, persona_instructions):
-    full_prompt = f"{persona_instructions}\n\nUser: {prompt}\nAssistant:"
-    response = model.generate_content(full_prompt)
-    return response.text
-
-if __name__ == "__main__":
-    main()
-
-   
-
